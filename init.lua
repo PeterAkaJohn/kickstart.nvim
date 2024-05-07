@@ -153,10 +153,6 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
--- nvim-tree setup
-vim.g.loaded_netrw = 1
-vim.g.loaded_netrwPlugin = 1
-
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -303,18 +299,6 @@ require('lazy').setup({
     end,
   },
 
-  -- nvim-tree
-  {
-    'nvim-tree/nvim-tree.lua',
-    version = '*',
-    lazy = false,
-    dependencies = {
-      'nvim-tree/nvim-web-devicons',
-    },
-    config = function()
-      require('nvim-tree').setup {}
-    end,
-  },
   -- copilot
   'github/copilot.vim',
   -- rustacean
@@ -322,6 +306,48 @@ require('lazy').setup({
     'mrcjkb/rustaceanvim',
     version = '^4', -- Recommended
     lazy = false, -- This plugin is already lazy
+  },
+  -- 'terryma/vim-multiple-cursors',
+  {
+    'mg979/vim-visual-multi',
+    init = function()
+      vim.g.VM_maps = {
+        ['Add Cursor Up'] = '<C-S-Up>',
+        ['Add Cursor Down'] = '<C-S-Down>',
+      }
+    end,
+  },
+
+  'nvim-neotest/neotest-python',
+  'nvim-neotest/neotest-go',
+  {
+    'nvim-neotest/neotest',
+    dependencies = {
+      'nvim-neotest/nvim-nio',
+      'nvim-lua/plenary.nvim',
+      'antoinemadec/FixCursorHold.nvim',
+      'nvim-treesitter/nvim-treesitter',
+      'nvim-neotest/neotest-python',
+      'nvim-neotest/neotest-go',
+    },
+    config = function()
+      require('neotest').setup {
+        adapters = {
+          require 'neotest-python',
+          require 'neotest-go',
+          require 'rustaceanvim.neotest',
+        },
+      }
+      vim.keymap.set('n', '<leader>crst', function()
+        require('neotest').run.run()
+      end, { desc = '[C]ode [R]un [S]ingle [T]est' })
+      vim.keymap.set('n', '<leader>crtf', function()
+        require('neotest').run.run(vim.fn.expand '%')
+      end, { desc = '[C]ode [R]un [T]est [F]ile' })
+      vim.keymap.set('n', '<leader>cdt', function()
+        require('neotest').run.run { strategy = 'dap' }
+      end, { desc = '[C]ode [D]ebug [T]est [F]ile' })
+    end,
   },
   -- NOTE: Plugins can specify dependencies.
   --
@@ -637,9 +663,16 @@ require('lazy').setup({
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
+      require('mason-lspconfig').setup_handlers {
+        ['rust_analyzer'] = function() end,
+      }
+
       require('mason-lspconfig').setup {
         handlers = {
           function(server_name)
+            if server_name == 'rust_analyzer' then
+              return
+            end
             local server = servers[server_name] or {}
             -- This handles overriding only values explicitly passed
             -- by the server configuration above. Useful when disabling
@@ -907,6 +940,9 @@ require('lazy').setup({
   require 'kickstart.plugins.debug',
   require 'kickstart.plugins.indent_line',
   require 'kickstart.plugins.lint',
+  require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.neo-tree',
+  require 'kickstart.plugins.gitsigns',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
